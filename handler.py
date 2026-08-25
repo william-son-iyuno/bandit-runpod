@@ -78,13 +78,22 @@ def _build_model() -> Bandit:
     return model
 
 
-MODEL = _build_model()
-INFERENCE = StandardTensorChunkedInferenceHandler(
-    chunk_size_seconds=8.0,
-    hop_size_seconds=1.0,
-    inference_batch_size=INFERENCE_BATCH_SIZE,
-    fs=SAMPLE_RATE,
-).cuda()
+MODEL = None
+INFERENCE = None
+
+
+def _get_runtime():
+    global MODEL, INFERENCE
+    if MODEL is None:
+        MODEL = _build_model()
+    if INFERENCE is None:
+        INFERENCE = StandardTensorChunkedInferenceHandler(
+            chunk_size_seconds=8.0,
+            hop_size_seconds=1.0,
+            inference_batch_size=INFERENCE_BATCH_SIZE,
+            fs=SAMPLE_RATE,
+        ).cuda()
+    return MODEL, INFERENCE
 
 
 def _download(url: str) -> bytes:
@@ -168,9 +177,10 @@ def handler(job: dict) -> dict:
         raw = _read_input(job_input)
         audio, original_sample_rate = _decode_audio(raw)
         duration = audio.shape[-1] / SAMPLE_RATE
+        model, inference = _get_runtime()
 
         with torch.inference_mode():
-            output = INFERENCE(audio.unsqueeze(0).cuda(), MODEL)
+            output = inference(audio.unsqueeze(0).cuda(), model)
 
         upload_urls = job_input.get("output_upload_urls", {})
         stems = {}
