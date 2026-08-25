@@ -1,9 +1,6 @@
 name: Build worker image
 
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+on: workflow_dispatch
 
 permissions:
   contents: read

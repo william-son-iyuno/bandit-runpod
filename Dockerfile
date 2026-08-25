@@ -19,7 +19,9 @@ RUN pip install \
         --extra-index-url https://download.pytorch.org/whl/cu117 \
         torchaudio==2.0.2 \
     && pip install \
-        runpod==1.12.0 soundfile==0.12.1 tqdm==4.66.4
+        runpod==1.12.0 soundfile==0.12.1 tqdm==4.66.4 \
+        pytorch-lightning==2.3.0 torchmetrics==0.11.4 \
+        librosa==0.10.2.post1
 
 RUN git clone https://github.com/kwatcharasupat/bandit-v2.git /tmp/bandit-v2 \
     && git -C /tmp/bandit-v2 checkout "$BANDIT_COMMIT" \

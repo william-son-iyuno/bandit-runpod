@@ -1,26 +1,46 @@
-# Bandit v2 RunPod worker
+# Bandit v2 on RunPod
 
 RunPod Serverless wrapper for the multilingual Bandit v2 cinematic audio source-separation checkpoint.
 
-The endpoint accepts `audio_url` (HTTPS) or `audio_base64` and separates the full input into `speech`, `music`, and `sfx`. There is no fixed duration limit.
+The active Pod API accepts an uploaded audio file and separates the full input into `speech`, `music`, and `sfx`. There is no fixed duration limit in the application.
 
-For long audio, pass presigned PUT URLs in `output_upload_urls`. Without upload URLs the FLAC files are returned inline as base64 and may exceed RunPod's response payload limit.
+Active API base URL:
+
+```text
+https://2kxlgz9yd1ms6c-8000.proxy.runpod.net
+```
+
+Retrieve the API key from the Pod over SSH and call the endpoint:
+
+```bash
+API_KEY=$(ssh -i ~/.runpod/ssh/RunPod-Key-Go \
+  -p 51872 root@213.181.111.2 \
+  'cat /workspace/.bandit-api-key')
+
+curl -X POST \
+  'https://2kxlgz9yd1ms6c-8000.proxy.runpod.net/separate' \
+  -H "X-API-Key: $API_KEY" \
+  -F 'file=@input.wav' \
+  -o bandit-stems.zip
+```
+
+The ZIP contains `speech.flac`, `music.flac`, `sfx.flac`, and `metadata.json`.
+
+Health check:
+
+```bash
+curl 'https://2kxlgz9yd1ms6c-8000.proxy.runpod.net/health'
+```
+
+After a Pod restart, reconnect over SSH and run:
+
+```bash
+nohup /workspace/start_pod.sh > /workspace/bandit-api.log 2>&1 &
+echo $! > /workspace/bandit-api.pid
+```
 
 Upstream code: https://github.com/kwatcharasupat/bandit-v2 (Apache-2.0)
 
 Model weights: https://zenodo.org/records/12701995 (CC BY-SA 4.0)
 
-Example input:
-
-```json
-{
-  "input": {
-    "audio_url": "https://example.com/audio.wav",
-    "output_upload_urls": {
-      "speech": "https://storage.example.com/speech.flac?presigned=...",
-      "music": "https://storage.example.com/music.flac?presigned=...",
-      "sfx": "https://storage.example.com/sfx.flac?presigned=..."
-    }
-  }
-}
-```
+The Pod currently uses one RTX 4090 and costs approximately $0.74/hour while running.
